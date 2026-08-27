@@ -898,8 +898,10 @@ function notify(type, amount, balanceAfter){
   const title = isDep ? "토스뱅크" : "토스뱅크";
   const wonNoSymbol = n => Math.round(n).toLocaleString("ko-KR") + "원";
   const body = isDep
-    ? `최지율 → 내 토스뱅크 통장 (토스뱅크 알림) · ${wonNoSymbol(amount)} 입금`
-    : `내 토스뱅크 통장 → 최지율 (토스뱅크 알림) · ${wonNoSymbol(amount)} 출금`;
+    ? `${wonNoSymbol(amount)}
+     입금  최지율 → 내 토스뱅크 통장 (토스뱅크 알림)`
+    : ` ${wonNoSymbol(amount)}
+     출금  내 토스뱅크 통장 → 최지율 (토스뱅크 알림)`;
 
   // 인앱 토스트
   showToast(type, title, body);
