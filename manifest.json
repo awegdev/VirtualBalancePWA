@@ -1,0 +1,14 @@
+{
+  "name": "토스",
+  "short_name": "토스",
+  "description": "토스는 간편한 송금과 결제를 제공하는 금융 서비스입니다.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0d12",
+  "theme_color": "#0a0d12",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

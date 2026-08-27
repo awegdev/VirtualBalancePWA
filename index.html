@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>토스</title>나만의
+<meta name="description" content="토스 계좌">
+<meta name="theme-color" content="#0a0d12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<!-- 로고를 바꾸려면 icon.svg 파일만 교체하면 됩니다. (헤더, 파비콘, 홈 화면 아이콘에 모두 자동 반영) -->
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============ TOKENS ============ */
+:root{
+  --bg:#000000;
+  --surface:#ffffff;
+  --surface-2:#011a8a;
+  --line:#ffffff;
+  --gold:#c9a15e;
+  --gold-lt:#eccf94;
+  --gold-dim:#8a713f;
+  --text:#070707;
+  --text-dim:#000000;
+  --text-faint:#5c6774;
+  --up:#5fd08c;
+  --down:#e9756a;
+  --radius-l:28px;
+  --radius-m:18px;
+  --radius-s:12px;
+  --disp:'Fraunces', serif;
+  --body:'Inter', sans-serif;
+  --mono:'JetBrains Mono', monospace;
+  --ease:cubic-bezier(.16,.8,.24,1);
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important;}
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:var(--body);
+  color:var(--text);
+  background:
+    radial-gradient(1200px 800px at 50% -10%, #171c24 0%, var(--bg) 55%),
+    var(--bg);
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:32px 16px;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* faint security-paper hairline texture behind everything */
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  background-image:repeating-linear-gradient(115deg, rgba(201,161,94,0.035) 0px, rgba(201,161,94,0.035) 1px, transparent 1px, transparent 34px);
+  pointer-events:none;
+  z-index:0;
+}
+button{font-family:inherit; cursor:pointer;}
+input{font-family:inherit;}
+:focus-visible{outline:2px solid var(--gold-lt); outline-offset:3px; border-radius:6px;}
+
+/* ============ PHONE FRAME ============ */
+.stage{
+  position:relative; z-index:1;
+  width:100%; max-width:410px;
+  height:min(870px, 92dvh);
+  background:linear-gradient(180deg,#fdfdfd,#a1c0f5 70%);
+  border-radius:44px;
+  border:1px solid #23293380;
+  box-shadow:
+    0 40px 100px -30px rgba(0,0,0,.75),
+    0 0 0 8px #05070a,
+    inset 0 1px 0 rgba(255,255,255,.03);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+@media (max-width:460px){
+  body{padding:0;}
+  .stage{
+    max-width:100%; height:100dvh; border-radius:0; border:none;
+    box-shadow:none;
+  }
+}
+.screen{
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .5s var(--ease);
+}
+.screen.active{opacity:1; visibility:visible; pointer-events:auto;}
+
+/* ============ ONBOARDING ============ */
+#onboard{padding:40px 28px 32px; justify-content:space-between; align-items:stretch;}
+.brand{display:flex; align-items:center; gap:10px; margin-bottom:8px;}
+.brand-mark{width:34px; height:34px; flex:none;}
+.brand-name{font-family:var(--disp); font-weight:600; font-size:19px; letter-spacing:.02em;}
+.ob-hero{margin-top:26px;}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:14px; display:block;
+}
+.ob-title{
+  font-family:var(--disp); font-weight:600; font-size:34px; line-height:1.18;
+  letter-spacing:-.01em;
+}
+.ob-title em{font-style:italic; color:var(--gold-lt); font-weight:500;}
+.ob-sub{color:var(--text-dim); font-size:14.5px; line-height:1.6; margin-top:14px; max-width:32ch;}
+
+.step{display:none;}
+.step.active{display:block;}
+
+.field{margin-top:26px;}
+.field label{display:block; font-size:12.5px; color:var(--text-dim); margin-bottom:9px; font-weight:500;}
+.field input[type=text]{
+  width:100%; background:var(--surface); border:1px solid var(--line); color:var(--text);
+  border-radius:var(--radius-s); padding:14px 16px; font-size:15px;
+}
+.chip-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;}
+.chip{
+  border:1px solid var(--line); background:var(--surface); color:var(--text-dim);
+  padding:9px 13px; border-radius:100px; font-size:12.5px; font-family:var(--mono);
+  transition:all .2s var(--ease);
+}
+.chip.selected{border-color:var(--gold); color:var(--gold-lt); background:#c9a15e14;}
+.chip:hover{border-color:var(--gold-dim);}
+
+.btn{
+  border:none; border-radius:100px; padding:16px 22px; font-size:15px; font-weight:600;
+  display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+  transition:transform .15s var(--ease), opacity .2s var(--ease);
+}
+.btn:active{transform:scale(.97);}
+.btn-gold{background:linear-gradient(180deg,var(--gold-lt),var(--gold)); color:#1a1408;}
+.btn-ghost{background:transparent; border:1px solid var(--line); color:var(--text);}
+.btn-ghost:hover{border-color:var(--gold-dim);}
+.btn[disabled]{opacity:.45; pointer-events:none;}
+.btn-text{background:none; border:none; color:var(--text-faint); font-size:12.5px; text-decoration:underline; text-underline-offset:3px; width:auto; padding:6px;}
+
+.ob-foot{margin-top:24px;}
+.helper{font-size:11.5px; color:var(--text-faint); margin-top:12px; line-height:1.6; text-align:center;}
+
+/* face scan graphic used in onboarding + lock */
+.scan-wrap{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:26px 0 8px; gap:22px;
+}
+.scan-ring{
+  position:relative; width:168px; height:168px; border-radius:50%;
+  background:
+    repeating-conic-gradient(from 0deg, var(--gold) 0deg 1.1deg, transparent 1.1deg 9deg);
+  -webkit-mask:radial-gradient(circle, transparent 61px, black 62px);
+          mask:radial-gradient(circle, transparent 61px, black 62px);
+  opacity:.55;
+  animation:spin 26s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.scan-core{
+  position:absolute; inset:22px; border-radius:50%;
+  background:radial-gradient(circle at 50% 35%, #1c222c, #12161d 70%);
+  border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+}
+.scan-core svg{width:56px; height:56px; opacity:.85;}
+.scan-line{
+  position:absolute; left:8%; right:8%; height:2px;
+  background:linear-gradient(90deg, transparent, var(--gold-lt), transparent);
+  filter:drop-shadow(0 0 6px var(--gold));
+  animation:scanmove 2.2s ease-in-out infinite;
+}
+@keyframes scanmove{
+  0%,100%{top:20%; opacity:0;} 10%{opacity:1;} 50%{top:78%; opacity:1;} 90%{opacity:1;}
+}
+.scan-status{font-family:var(--mono); font-size:12px; color:var(--text-dim); letter-spacing:.04em; min-height:16px;}
+.scan-ring.success{animation:none; opacity:1; background:repeating-conic-gradient(from 0deg, var(--up) 0deg 1.1deg, transparent 1.1deg 9deg);}
+.scan-ring.fail{animation:none; opacity:1; background:repeating-conic-gradient(from 0deg, var(--down) 0deg 1.1deg, transparent 1.1deg 9deg);}
+
+/* ============ LOCK SCREEN ============ */
+#lock{padding:44px 28px 34px; align-items:center; justify-content:space-between; text-align:center;}
+.lock-top{width:100%;}
+.lock-time{font-family:var(--disp); font-weight:300; font-size:15px; color:var(--text-faint); letter-spacing:.04em;}
+.lock-mid{width:100%;}
+.lock-acct{font-family:var(--mono); color:var(--text-faint); font-size:12.5px; margin-top:6px; letter-spacing:.03em;}
+.lock-name{font-family:var(--disp); font-size:22px; font-weight:600; margin-top:2px;}
+.lock-bottom{width:100%;}
+
+/* ============ DASHBOARD ============ */
+#dash{overflow:hidden;}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:22px 22px 0;
+}
+.topbar .brand-name{font-size:15px;}
+.icon-btn{
+  width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--surface);
+  color:var(--text-dim); display:flex; align-items:center; justify-content:center; position:relative;
+  transition:border-color .2s;
+}
+.icon-btn:hover{border-color:var(--gold-dim); color:var(--gold-lt);}
+.icon-btn .dot{
+  position:absolute; top:6px; right:6px; width:7px; height:7px; border-radius:50%; background:var(--down);
+  border:1.5px solid var(--surface); display:none;
+}
+.icon-btn .dot.on{display:block; background:var(--up);}
+
+.dash-scroll{flex:1; overflow-y:auto; padding:0 22px 22px; scrollbar-width:none;}
+.dash-scroll::-webkit-scrollbar{display:none;}
+
+.balance-card{
+  position:relative; margin-top:18px; padding:30px 22px 26px; border-radius:var(--radius-l);
+  background:radial-gradient(120% 140% at 15% 0%, #1a2029 0%, var(--surface) 60%);
+  border:1px solid var(--line); overflow:hidden;
+}
+.balance-card::before{
+  content:""; position:absolute; width:340px; height:340px; right:-140px; top:-160px; border-radius:50%;
+  background:repeating-conic-gradient(from 0deg, var(--gold) 0deg 1deg, transparent 1deg 8deg);
+  opacity:.14; animation:spin 40s linear infinite;
+}
+.bc-label{font-size:12px; color:var(--text-dim); letter-spacing:.03em; position:relative; z-index:1;}
+.bc-amount{
+  font-family:var(--disp); font-weight:600; font-size:40px; letter-spacing:-.01em; margin-top:10px;
+  position:relative; z-index:1; word-break:break-all;
+}
+.bc-amount .won{color:var(--gold-lt); font-size:.62em; margin-right:5px; vertical-align:2px;}
+.bc-acct{
+  font-family:var(--mono); font-size:12px; color:var(--text-faint); margin-top:14px; position:relative; z-index:1;
+  letter-spacing:.03em;
+}
+.bc-badge{
+  display:inline-flex; align-items:center; gap:5px; margin-top:16px; padding:6px 11px; border-radius:100px;
+  background:#5fd08c14; border:1px solid #5fd08c33; color:var(--up); font-size:11px; font-weight:600;
+  position:relative; z-index:1;
+}
+
+.actions-row{display:flex; gap:10px; margin-top:16px;}
+.action-btn{
+  flex:1; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-m);
+  padding:16px 8px; display:flex; flex-direction:column; align-items:center; gap:9px;
+  transition:transform .15s var(--ease), border-color .2s;
+}
+.action-btn:active{transform:scale(.96);}
+.action-btn:hover{border-color:var(--gold-dim);}
+.action-btn .ic{
+  width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+}
+.action-btn.deposit .ic{background:#5fd08c1a; color:var(--up);}
+.action-btn.withdraw .ic{background:#e9756a1a; color:var(--down);}
+.action-btn.lock .ic{background:#c9a15e1a; color:var(--gold-lt);}
+.action-btn span{font-size:12.5px; font-weight:600; color:var(--text);}
+
+.section-head{display:flex; align-items:baseline; justify-content:space-between; margin-top:30px; margin-bottom:12px;}
+.section-title{font-family:var(--disp); font-size:17px; font-weight:600;}
+.section-count{font-family:var(--mono); font-size:11px; color:var(--text-faint);}
+
+.tx-empty{
+  text-align:center; padding:34px 10px; color:var(--text-faint); font-size:13px; border:1px dashed var(--line);
+  border-radius:var(--radius-m);
+}
+.tx-list{display:flex; flex-direction:column; gap:2px;}
+.tx-row{
+  display:flex; align-items:center; gap:12px; padding:13px 4px; border-bottom:1px solid #ffffff08;
+}
+.tx-row:last-child{border-bottom:none;}
+.tx-ic{
+  width:36px; height:36px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+}
+.tx-row.deposit .tx-ic{background:#5fd08c14; color:var(--up);}
+.tx-row.withdraw .tx-ic{background:#e9756a14; color:var(--down);}
+.tx-info{flex:1; min-width:0;}
+.tx-label{font-size:13.5px; font-weight:600;}
+.tx-time{font-size:11.5px; color:var(--text-faint); margin-top:2px; font-family:var(--mono);}
+.tx-amt{font-family:var(--mono); font-size:13.5px; font-weight:600; flex:none;}
+.tx-row.deposit .tx-amt{color:var(--up);}
+.tx-row.withdraw .tx-amt{color:var(--down);}
+
+.footer-note{margin-top:26px; text-align:center; font-size:11px; color:var(--text-faint); line-height:1.7; padding-bottom:6px;}
+
+/* ============ MODAL SHEET ============ */
+.sheet-backdrop{
+  position:absolute; inset:0; background:rgba(6,8,11,.68); backdrop-filter:blur(3px);
+  opacity:0; visibility:hidden; transition:opacity .25s var(--ease); z-index:20;
+}
+.sheet-backdrop.active{opacity:1; visibility:visible;}
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; background:var(--surface-2);
+  border-top:1px solid var(--line); border-radius:26px 26px 0 0; padding:22px 22px 28px;
+  transform:translateY(100%); transition:transform .38s var(--ease);
+}
+.sheet-backdrop.active .sheet{transform:translateY(0);}
+.sheet-grabber{width:36px; height:4px; border-radius:100px; background:var(--line); margin:0 auto 18px;}
+.sheet-title{font-family:var(--disp); font-size:20px; font-weight:600; display:flex; align-items:center; gap:9px;}
+.sheet-sub{color:var(--text-dim); font-size:12.5px; margin-top:6px;}
+.amount-input-wrap{
+  display:flex; align-items:baseline; gap:8px; margin-top:22px; padding-bottom:12px; border-bottom:1px solid var(--line);
+}
+.amount-input-wrap .won{font-family:var(--disp); font-size:24px; color:var(--gold-lt); font-weight:600;}
+.amount-input-wrap input{
+  flex:1; background:none; border:none; color:var(--text); font-family:var(--disp); font-size:32px; font-weight:600;
+  min-width:0;
+}
+.amount-input-wrap input::placeholder{color:var(--text-faint);}
+.avail{font-size:11.5px; color:var(--text-faint); margin-top:9px; font-family:var(--mono);}
+.avail b{color:var(--text-dim);}
+.preset-row{display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;}
+.preset{
+  border:1px solid var(--line); background:var(--surface); color:var(--text-dim); padding:8px 13px;
+  border-radius:100px; font-size:12px; font-family:var(--mono);
+}
+.preset:hover{border-color:var(--gold-dim); color:var(--gold-lt);}
+.sheet-err{color:var(--down); font-size:12px; margin-top:10px; min-height:16px;}
+.sheet-actions{display:flex; gap:10px; margin-top:22px;}
+
+/* ============ TOAST ============ */
+.toast{
+  position:absolute; left:18px; right:18px; top:18px; z-index:40;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:16px; padding:13px 15px;
+  display:flex; align-items:center; gap:11px;
+  box-shadow:0 20px 40px -14px rgba(0,0,0,.6);
+  transform:translateY(-140%); transition:transform .4s var(--ease);
+}
+.toast.show{transform:translateY(0);}
+.toast .tic{width:32px; height:32px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;}
+.toast.deposit .tic{background:#5fd08c1a; color:var(--up);}
+.toast.withdraw .tic{background:#e9756a1a; color:var(--down);}
+.toast-body b{font-size:13px; display:block;}
+.toast-body span{font-size:11.5px; color:var(--text-dim);}
+
+/* generic icon svg sizing */
+svg.i{width:19px; height:19px; stroke-width:1.7;}
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- ================= ONBOARDING ================= -->
+  <section id="onboard" class="screen active">
+    <div>
+      <div class="brand">
+        <img class="brand-mark" src="icon.svg" alt="앱 로고">
+        <span class="brand-name">토스뱅크</span>
+      </div>
+
+      <!-- STEP 1: 계좌 생성 -->
+      <div class="step active" data-step="1">
+        <div class="ob-hero">
+          <span class="eyebrow">Demo Virtual Account</span>
+          <h1 class="ob-title">토스<br><em>계좌</em>를 엽니다.</h1>
+          <p class="ob-sub"></p>
+        </div>
+        <div class="field">
+          <label for="nickname">계좌 별명</label>
+          <input type="text" id="nickname" placeholder="예: 나의 첫 금고" maxlength="16" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>시작 잔액</label>
+          <div class="chip-row" id="presetChips">
+            <button class="chip" data-amt="10000000">₩10,000,000</button>
+            <button class="chip" data-amt="100000000">₩100,000,000</button>
+            <button class="chip selected" data-amt="500000000">₩500,000,000</button>
+            <button class="chip" data-amt="999999999">₩999,999,999</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Face ID 등록 -->
+      <div class="step" data-step="2">
+        <div class="ob-hero" style="margin-top:6px;">
+          <span class="eyebrow">Step 2 — Biometric Lock</span>
+          <h1 class="ob-title" style="font-size:26px;">Face ID로<br><em>금고를 잠그세요.</em></h1>
+          <p class="ob-sub">이 기기의 얼굴 인식(또는 지문·PIN)으로 금고를 열고 잠급니다. 실제 생체정보는 이 기기 밖으로 절대 전송되지 않아요.</p>
+        </div>
+        <div class="scan-wrap">
+          <div class="scan-ring" id="obRing">
+            <div class="scan-core">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#eccf94" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a3 3 0 0 0 6 0M8 9v1M16 9v1M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/></svg>
+              <div class="scan-line" id="obScanLine" style="display:none;"></div>
+            </div>
+          </div>
+          <div class="scan-status" id="obStatus">등록 준비 완료</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ob-foot">
+      <button class="btn btn-gold" id="obNextBtn">계좌 만들기</button>
+      <p class="helper" id="obHelper">별명과 시작 잔액을 정하고 계속하세요.</p>
+    </div>
+  </section>
+
+  <!-- ================= LOCK SCREEN ================= -->
+  <section id="lock" class="screen">
+    <div class="lock-top">
+      <div class="lock-time" id="clock">--:--</div>
+    </div>
+    <div class="lock-mid">
+      <div class="scan-wrap">
+        <div class="scan-ring" id="lockRing">
+          <div class="scan-core">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#eccf94" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a3 3 0 0 0 6 0M8 9v1M16 9v1M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/></svg>
+            <div class="scan-line" id="lockScanLine" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="scan-status" id="lockStatus">잠겨 있음</div>
+      </div>
+      <div class="lock-name" id="lockName">나의 금고</div>
+      <div class="lock-acct" id="lockAcct">가상계좌 ****</div>
+    </div>
+    <div class="lock-bottom">
+      <button class="btn btn-gold" id="unlockBtn">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a3 3 0 0 0 6 0M8 9v1M16 9v1M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/></svg>
+        Face ID로 잠금 해제
+      </button>
+      <p class="helper" id="lockHelper">기기의 얼굴 인식을 사용해 금고를 엽니다.</p>
+    </div>
+  </section>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="dash" class="screen">
+    <div class="topbar">
+      <div class="brand">
+        <img class="brand-mark" src="icon.svg" alt="앱 로고" width="26" height="26">
+        <span class="brand-name" id="dashName">나의 금고</span>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button class="icon-btn" id="notifBtn" title="알림 설정" aria-label="알림 설정">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot" id="notifDot"></span>
+        </button>
+        <button class="icon-btn" id="lockNowBtn" title="잠그기" aria-label="잠그기">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="dash-scroll">
+      <div class="balance-card">
+        <div class="bc-label">사용 가능 잔액</div>
+        <div class="bc-amount"><span class="won">₩</span><span id="balanceText">0</span></div>
+        <div class="bc-acct" id="dashAcct">가상계좌 ****</div>
+        <div class="bc-badge">
+          <svg class="i" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+          Face ID로 보호됨
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button class="action-btn deposit" id="openDeposit">
+          <span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+          <span>입금</span>
+        </button>
+        <button class="action-btn withdraw" id="openWithdraw">
+          <span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>
+          <span>출금</span>
+        </button>
+        <button class="action-btn lock" id="resetBtn">
+          <span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></span>
+          <span>초기화</span>
+        </button>
+      </div>
+
+      <div class="section-head">
+        <div class="section-title">거래 내역</div>
+        <div class="section-count" id="txCount">0건</div>
+      </div>
+      <div id="txListWrap">
+        <div class="tx-empty" id="txEmpty">아직 거래 내역이 없어요.<br>입금 또는 출금을 시작해보세요.</div>
+        <div class="tx-list" id="txList"></div>
+      </div>
+
+      <div class="footer-note">이 계좌는 학습·데모 목적의 가상계좌입니다.<br>실제 금융 거래가 아니며 모든 데이터는 이 브라우저에만 저장돼요.</div>
+    </div>
+  </section>
+
+  <!-- ================= DEPOSIT SHEET ================= -->
+  <div class="sheet-backdrop" id="depositBackdrop">
+    <div class="sheet">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-title">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="#5fd08c" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        입금하기
+      </div>
+      <div class="sheet-sub">금고에 넣을 금액을 입력하세요.</div>
+      <div class="amount-input-wrap">
+        <span class="won">₩</span>
+        <input type="text" inputmode="numeric" id="depositAmount" placeholder="0" autocomplete="off">
+      </div>
+      <div class="preset-row">
+        <button class="preset" data-amt="100000">+10만</button>
+        <button class="preset" data-amt="1000000">+100만</button>
+        <button class="preset" data-amt="10000000">+1,000만</button>
+        <button class="preset" data-amt="100000000">+1억</button>
+      </div>
+      <div class="sheet-err" id="depositErr"></div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost" id="depositCancel">취소</button>
+        <button class="btn btn-gold" id="depositConfirm">입금 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= WITHDRAW SHEET ================= -->
+  <div class="sheet-backdrop" id="withdrawBackdrop">
+    <div class="sheet">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-title">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="#e9756a" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        출금하기
+      </div>
+      <div class="sheet-sub">금고에서 뺄 금액을 입력하세요.</div>
+      <div class="amount-input-wrap">
+        <span class="won">₩</span>
+        <input type="text" inputmode="numeric" id="withdrawAmount" placeholder="0" autocomplete="off">
+      </div>
+      <div class="avail">출금 가능 <b id="withdrawAvail">₩0</b></div>
+      <div class="preset-row">
+        <button class="preset" data-amt="100000">10만</button>
+        <button class="preset" data-amt="1000000">100만</button>
+        <button class="preset" data-amt="10000000">1,000만</button>
+        <button class="preset" id="presetAll">전액</button>
+      </div>
+      <div class="sheet-err" id="withdrawErr"></div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost" id="withdrawCancel">취소</button>
+        <button class="btn btn-gold" id="withdrawConfirm">출금 완료</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TOAST ================= -->
+  <div class="toast" id="toast">
+    <div class="tic" id="toastIcon"></div>
+    <div class="toast-body">
+      <b id="toastTitle">알림</b>
+      <span id="toastBody">내용</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ============ STORAGE HELPERS ============ */
+const LS = {
+  get(k, d=null){ try{ const v = localStorage.getItem(k); return v===null? d : JSON.parse(v);}catch(e){return d;} },
+  set(k, v){ localStorage.setItem(k, JSON.stringify(v)); },
+  remove(k){ localStorage.removeItem(k); }
+};
+const KEYS = {
+  account: "vault_account",
+  balance: "vault_balance",
+  tx: "vault_transactions",
+  credId: "vault_credential_id",
+  notif: "vault_notif_enabled"
+};
+
+const won = n => "₩" + Math.round(n).toLocaleString("ko-KR");
+const fmtNum = n => Math.round(n).toLocaleString("ko-KR");
+const parseAmt = s => { const n = parseInt(String(s).replace(/[^\d]/g,""),10); return isNaN(n)?0:n; };
+
+function genAccountNumber(){
+  const g = n => Array.from({length:n}, () => Math.floor(Math.random()*10)).join("");
+  return `${g(4)}-${g(4)}-${g(4)}-${g(2)}`;
+}
+function genId(){ return 'tx_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+function b64urlEncode(buf){
+  const bytes = new Uint8Array(buf);
+  let str = "";
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+}
+function b64urlDecode(str){
+  str = str.replace(/-/g,"+").replace(/_/g,"/");
+  while (str.length % 4) str += "=";
+  const bin = atob(str);
+  const bytes = new Uint8Array(bin.length);
+  for (let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/* ============ SCREEN NAV ============ */
+const screens = { onboard: document.getElementById('onboard'), lock: document.getElementById('lock'), dash: document.getElementById('dash') };
+function showScreen(name){
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+/* ============ ONBOARDING LOGIC ============ */
+let selectedPreset = 500000000;
+const presetChips = document.getElementById('presetChips');
+presetChips.addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  [...presetChips.children].forEach(c => c.classList.remove('selected'));
+  chip.classList.add('selected');
+  selectedPreset = parseInt(chip.dataset.amt, 10);
+});
+
+const obNextBtn = document.getElementById('obNextBtn');
+const obHelper = document.getElementById('obHelper');
+let obStep = 1;
+
+obNextBtn.addEventListener('click', async () => {
+  if (obStep === 1){
+    const nickname = document.getElementById('nickname').value.trim() || "나의 금고";
+    const account = { name: nickname, number: genAccountNumber(), createdAt: Date.now() };
+    LS.set(KEYS.account, account);
+    LS.set(KEYS.balance, selectedPreset);
+    LS.set(KEYS.tx, []);
+    document.querySelector('.step[data-step="1"]').classList.remove('active');
+    document.querySelector('.step[data-step="2"]').classList.add('active');
+    obStep = 2;
+    obNextBtn.textContent = "Face ID 등록하기";
+    obHelper.textContent = "이 기기의 생체 인증을 사용해 금고를 잠급니다.";
+    return;
+  }
+  if (obStep === 2){
+    await registerFaceID();
+  }
+});
+
+async function registerFaceID(){
+  const ring = document.getElementById('obRing');
+  const line = document.getElementById('obScanLine');
+  const status = document.getElementById('obStatus');
+  obNextBtn.disabled = true;
+  line.style.display = 'block';
+  status.textContent = "얼굴 인식 등록 중…";
+
+  try{
+    if (!window.PublicKeyCredential || !navigator.credentials || !navigator.credentials.create){
+      throw new Error('unsupported');
+    }
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({
+      publicKey:{
+        challenge,
+        rp:{ name:"토스" },
+        user:{ id:userId, name:"vault-owner", displayName:"Vault Owner" },
+        pubKeyCredParams:[{alg:-7,type:"public-key"},{alg:-257,type:"public-key"}],
+        authenticatorSelection:{ authenticatorAttachment:"platform", userVerification:"required" },
+        timeout:60000,
+        attestation:"none"
+      }
+    });
+    LS.set(KEYS.credId, b64urlEncode(cred.rawId));
+    finishRegistration(true, "얼굴 인식 등록 완료");
+  }catch(err){
+    // WebAuthn 미지원/거부 시 데모 모드로 진행 (기기 생체인증 없이도 앱 흐름 확인 가능)
+    LS.set(KEYS.credId, "demo-mode");
+    finishRegistration(true, "데모 모드로 진행합니다");
+  }
+}
+
+function finishRegistration(ok, msg){
+  const ring = document.getElementById('obRing');
+  const line = document.getElementById('obScanLine');
+  const status = document.getElementById('obStatus');
+  line.style.display = 'none';
+  ring.classList.add(ok ? 'success' : 'fail');
+  status.textContent = msg;
+  setTimeout(() => {
+    enterDashboard(true);
+  }, 850);
+}
+
+/* ============ LOCK / UNLOCK ============ */
+const unlockBtn = document.getElementById('unlockBtn');
+unlockBtn.addEventListener('click', attemptUnlock);
+
+async function attemptUnlock(){
+  const ring = document.getElementById('lockRing');
+  const line = document.getElementById('lockScanLine');
+  const status = document.getElementById('lockStatus');
+  ring.classList.remove('success','fail');
+  unlockBtn.disabled = true;
+  line.style.display = 'block';
+  status.textContent = "얼굴 인식 중…";
+
+  const credId = LS.get(KEYS.credId);
+
+  try{
+    if (credId && credId !== "demo-mode" && window.PublicKeyCredential && navigator.credentials.get){
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      await navigator.credentials.get({
+        publicKey:{
+          challenge,
+          allowCredentials:[{ id:b64urlDecode(credId), type:'public-key', transports:['internal'] }],
+          userVerification:"required",
+          timeout:60000
+        }
+      });
+      unlockSuccess();
+    } else {
+      // 데모 모드: 실제 생체 하드웨어 없이 스캔 연출 후 통과
+      await new Promise(r => setTimeout(r, 1400));
+      unlockSuccess();
+    }
+  }catch(err){
+    line.style.display = 'none';
+    ring.classList.add('fail');
+    status.textContent = "인식 실패 — 다시 시도해주세요";
+    unlockBtn.disabled = false;
+    setTimeout(() => ring.classList.remove('fail'), 1200);
+  }
+}
+
+function unlockSuccess(){
+  const ring = document.getElementById('lockRing');
+  const line = document.getElementById('lockScanLine');
+  const status = document.getElementById('lockStatus');
+  line.style.display = 'none';
+  ring.classList.add('success');
+  status.textContent = "인식 완료";
+  setTimeout(() => { unlockBtn.disabled = false; enterDashboard(false); }, 500);
+}
+
+document.getElementById('lockNowBtn').addEventListener('click', () => {
+  const ring = document.getElementById('lockRing');
+  ring.classList.remove('success','fail');
+  document.getElementById('lockStatus').textContent = "잠겨 있음";
+  showScreen('lock');
+});
+
+/* ============ DASHBOARD RENDER ============ */
+function enterDashboard(fresh){
+  const account = LS.get(KEYS.account);
+  const balance = LS.get(KEYS.balance, 0);
+  document.getElementById('lockName').textContent = account.name;
+  document.getElementById('lockAcct').textContent = "계좌 " + account.number;
+  document.getElementById('dashName').textContent = account.name;
+  document.getElementById('dashAcct').textContent = "계좌 " + account.number;
+  renderBalance(balance);
+  renderTx();
+  showScreen('dash');
+  updateNotifDot();
+}
+
+function renderBalance(balance){
+  document.getElementById('balanceText').textContent = fmtNum(balance);
+  document.getElementById('withdrawAvail').textContent = won(balance);
+}
+
+function renderTx(){
+  const list = LS.get(KEYS.tx, []);
+  const wrap = document.getElementById('txList');
+  const empty = document.getElementById('txEmpty');
+  document.getElementById('txCount').textContent = list.length + "건";
+  wrap.innerHTML = "";
+  if (!list.length){ empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.slice().reverse().forEach(tx => {
+    const row = document.createElement('div');
+    row.className = 'tx-row ' + tx.type;
+    const d = new Date(tx.timestamp);
+    const timeStr = d.toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const isDep = tx.type === 'deposit';
+    row.innerHTML = `
+      <div class="tx-ic">${isDep ? iconArrowUp() : iconArrowDown()}</div>
+      <div class="tx-info">
+        <div class="tx-label">${isDep ? '입금' : '출금'}${tx.memo ? ' · ' + tx.memo : ''}</div>
+        <div class="tx-time">${timeStr}</div>
+      </div>
+      <div class="tx-amt">${isDep ? '+' : '-'}${won(tx.amount)}</div>
+    `;
+    wrap.appendChild(row);
+  });
+}
+function iconArrowUp(){ return `<svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`; }
+function iconArrowDown(){ return `<svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>`; }
+
+/* ============ TRANSACTIONS ============ */
+function addTransaction(type, amount, memo){
+  const list = LS.get(KEYS.tx, []);
+  let balance = LS.get(KEYS.balance, 0);
+  balance = type === 'deposit' ? balance + amount : balance - amount;
+  list.push({ id: genId(), type, amount, memo: memo || "", timestamp: Date.now(), balanceAfter: balance });
+  LS.set(KEYS.tx, list);
+  LS.set(KEYS.balance, balance);
+  renderBalance(balance);
+  renderTx();
+  notify(type, amount, balance);
+}
+
+/* ---- Deposit sheet ---- */
+const depositBackdrop = document.getElementById('depositBackdrop');
+const depositAmount = document.getElementById('depositAmount');
+const depositErr = document.getElementById('depositErr');
+document.getElementById('openDeposit').addEventListener('click', () => openSheet(depositBackdrop, depositAmount));
+document.getElementById('depositCancel').addEventListener('click', () => closeSheet(depositBackdrop));
+depositBackdrop.addEventListener('click', e => { if (e.target === depositBackdrop) closeSheet(depositBackdrop); });
+depositBackdrop.querySelectorAll('.preset').forEach(btn => {
+  btn.addEventListener('click', () => { depositAmount.value = fmtNum(parseInt(btn.dataset.amt,10)); });
+});
+document.getElementById('depositConfirm').addEventListener('click', () => {
+  const amt = parseAmt(depositAmount.value);
+  if (amt <= 0){ depositErr.textContent = "1원 이상 입력해주세요."; return; }
+  addTransaction('deposit', amt);
+  closeSheet(depositBackdrop);
+});
+
+/* ---- Withdraw sheet ---- */
+const withdrawBackdrop = document.getElementById('withdrawBackdrop');
+const withdrawAmount = document.getElementById('withdrawAmount');
+const withdrawErr = document.getElementById('withdrawErr');
+document.getElementById('openWithdraw').addEventListener('click', () => {
+  document.getElementById('withdrawAvail').textContent = won(LS.get(KEYS.balance,0));
+  openSheet(withdrawBackdrop, withdrawAmount);
+});
+document.getElementById('withdrawCancel').addEventListener('click', () => closeSheet(withdrawBackdrop));
+withdrawBackdrop.addEventListener('click', e => { if (e.target === withdrawBackdrop) closeSheet(withdrawBackdrop); });
+withdrawBackdrop.querySelectorAll('.preset[data-amt]').forEach(btn => {
+  btn.addEventListener('click', () => { withdrawAmount.value = fmtNum(parseInt(btn.dataset.amt,10)); });
+});
+document.getElementById('presetAll').addEventListener('click', () => {
+  withdrawAmount.value = fmtNum(LS.get(KEYS.balance,0));
+});
+document.getElementById('withdrawConfirm').addEventListener('click', () => {
+  const amt = parseAmt(withdrawAmount.value);
+  const balance = LS.get(KEYS.balance, 0);
+  if (amt <= 0){ withdrawErr.textContent = "1원 이상 입력해주세요."; return; }
+  if (amt > balance){ withdrawErr.textContent = "잔액이 부족해요."; return; }
+  addTransaction('withdraw', amt);
+  closeSheet(withdrawBackdrop);
+});
+
+function openSheet(backdrop, input){
+  backdrop.classList.add('active');
+  input.value = "";
+  depositErr.textContent = ""; withdrawErr.textContent = "";
+  setTimeout(() => input.focus(), 300);
+}
+function closeSheet(backdrop){ backdrop.classList.remove('active'); }
+
+/* ============ NOTIFICATIONS ============ */
+const notifBtn = document.getElementById('notifBtn');
+const notifDot = document.getElementById('notifDot');
+notifBtn.addEventListener('click', async () => {
+  if (!('Notification' in window)){
+    showToast('deposit', '알림 미지원', '이 브라우저는 알림을 지원하지 않아요.');
+    return;
+  }
+  if (Notification.permission === 'granted'){
+    LS.set(KEYS.notif, !LS.get(KEYS.notif, true));
+    updateNotifDot();
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  LS.set(KEYS.notif, perm === 'granted');
+  updateNotifDot();
+});
+function updateNotifDot(){
+  const on = ('Notification' in window) && Notification.permission === 'granted' && LS.get(KEYS.notif, true);
+  notifDot.classList.toggle('on', !!on);
+}
+
+function notify(type, amount, balanceAfter){
+  const isDep = type === 'deposit';
+  const title = isDep ? "입금 알림" : "출금 알림";
+  const body = `${isDep?'+':'-'}${won(amount)} · 잔액 ${won(balanceAfter)}`;
+
+  // 인앱 토스트
+  showToast(type, title, body);
+
+  // 브라우저/기기 알림
+  if ('Notification' in window && Notification.permission === 'granted' && LS.get(KEYS.notif, true)){
+    try{
+      new Notification(`VAULT · ${title}`, { body, tag:'vault-tx', icon:'icon.svg' });
+    }catch(e){ /* 일부 환경은 무시될 수 있음 */ }
+  }
+  if (navigator.vibrate) navigator.vibrate(isDep ? [30,40,30] : [50]);
+}
+
+const toast = document.getElementById('toast');
+let toastTimer = null;
+function showToast(type, title, body){
+  document.getElementById('toastIcon').innerHTML = type==='deposit' ? iconArrowUp() : iconArrowDown();
+  toast.className = 'toast ' + type;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastBody').textContent = body;
+  requestAnimationFrame(() => toast.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3200);
+}
+
+/* ============ RESET ============ */
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm("이 금고를 초기화할까요? 계좌, 잔액, 거래 내역, Face ID 등록이 모두 삭제돼요.")) return;
+  Object.values(KEYS).forEach(k => LS.remove(k));
+  location.reload();
+});
+
+/* ============ CLOCK ============ */
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clock').textContent = d.toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+}
+setInterval(tickClock, 1000 * 10);
+tickClock();
+
+/* ============ BOOTSTRAP ============ */
+(function init(){
+  const account = LS.get(KEYS.account);
+  const credId = LS.get(KEYS.credId);
+  if (account && credId){
+    document.getElementById('lockName').textContent = account.name;
+    document.getElementById('lockAcct').textContent = "계좌 " + account.number;
+    showScreen('lock');
+  } else {
+    showScreen('onboard');
+  }
+})();
+
+})();
+</script>
+</body>
+</html>
