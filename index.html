@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="내 가상계좌">
+<link rel="manifest" href="manifest.json">
+<title>내 가상계좌</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080809;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Noto Sans KR",sans-serif}
+button,input{font:inherit} .app{max-width:520px;margin:auto;padding:env(safe-area-inset-top) 18px calc(24px + env(safe-area-inset-bottom))}
+header{padding:26px 4px 18px}h1{font-size:24px;margin:0 0 6px}.sub{color:#8e8e93;font-size:13px}
+.card{background:#151517;border:1px solid #242428;border-radius:24px;padding:24px;margin:8px 0 18px}
+.label{color:#8e8e93;font-size:14px}.balance{font-size:40px;font-weight:750;margin:8px 0}.notice{color:#777;font-size:11px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}.action{border:0;border-radius:17px;padding:16px;background:#1c1c1f;color:#fff;font-weight:650}
+.action:first-child{background:#fff;color:#111}.section{font-size:18px;font-weight:700;margin:0 0 12px}
+.tx{display:flex;align-items:center;gap:12px;padding:15px 2px;border-bottom:1px solid #202023}.tx:last-child{border-bottom:0}
+.icon{width:42px;height:42px;border-radius:14px;background:#1b1b1e;display:grid;place-items:center;font-size:19px}.txmain{flex:1}.txtitle{font-weight:600}.date{color:#777;font-size:11px;margin-top:4px}.amt{font-weight:700}.plus{color:#39d98a}.minus{color:#ff5c5c}
+.empty{color:#777;text-align:center;padding:28px 0}.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:flex-end;padding:0}.sheet{width:100%;max-width:520px;margin:auto;background:#171719;border-radius:26px 26px 0 0;padding:24px calc(20px) calc(24px + env(safe-area-inset-bottom))}
+.sheet h2{margin:0 0 18px}.field{width:100%;background:#242428;color:#fff;border:1px solid #303035;border-radius:14px;padding:14px;margin:7px 0;outline:none}.save{width:100%;border:0;background:#fff;color:#111;padding:15px;border-radius:15px;font-weight:700;margin-top:10px}.cancel{width:100%;border:0;background:transparent;color:#aaa;padding:13px}.lock{position:fixed;inset:0;background:#080809;z-index:5;display:flex;align-items:center;justify-content:center;text-align:center;padding:30px}.lockbox{max-width:330px}.lockicon{font-size:48px;margin-bottom:18px}.unlock{border:0;border-radius:15px;padding:14px 22px;background:#fff;color:#111;font-weight:700;margin-top:15px}
+.smallbtn{float:right;background:none;border:0;color:#888;font-size:12px}
+</style>
+</head>
+<body>
+<div id="lock" class="lock">
+  <div class="lockbox">
+    <div class="lockicon">🔒</div>
+    <h1>내 가상계좌</h1>
+    <div class="sub">개인용 가상 잔액 앱</div>
+    <button class="unlock" onclick="unlock()">잠금 해제</button>
+  </div>
+</div>
+
+<main class="app">
+<header><h1>내 가상계좌</h1><div class="sub">개인용 가상 지갑</div></header>
+<section class="card">
+  <div class="label">현재 잔액</div>
+  <div id="balance" class="balance">₩0</div>
+  <div class="notice">가상 잔액 · 실제 금융계좌 아님</div>
+</section>
+<div class="actions">
+  <button class="action" onclick="openModal(true)">＋ 입금</button>
+  <button class="action" onclick="openModal(false)">− 출금</button>
+</div>
+<section>
+  <div class="section">최근 거래 <button class="smallbtn" onclick="resetAll()">초기화</button></div>
+  <div class="card" style="padding:8px 18px"><div id="list"></div></div>
+</section>
+</main>
+
+<div id="modal" class="modal">
+ <div class="sheet">
+  <h2 id="modalTitle">입금</h2>
+  <input id="title" class="field" placeholder="거래명 (예: 용돈)">
+  <input id="amount" class="field" inputmode="numeric" type="number" min="1" placeholder="금액">
+  <button class="save" onclick="saveTx()">저장</button>
+  <button class="cancel" onclick="closeModal()">취소</button>
+ </div>
+</div>
+
+<script>
+const KEY="virtual-wallet-v1";
+let data=JSON.parse(localStorage.getItem(KEY)||"null")||{balance:3842500,tx:[]};
+let mode=true;
+const won=n=>"₩"+Number(n).toLocaleString("ko-KR");
+function render(){
+ document.getElementById("balance").textContent=won(data.balance);
+ const list=document.getElementById("list");
+ if(!data.tx.length){list.innerHTML='<div class="empty">아직 거래내역이 없습니다.</div>';return}
+ list.innerHTML=data.tx.slice(0,30).map(t=>`
+ <div class="tx"><div class="icon">${t.deposit?"＋":"−"}</div>
+ <div class="txmain"><div class="txtitle">${escapeHtml(t.title)}</div>
+ <div class="date">${new Date(t.date).toLocaleString("ko-KR")}</div></div>
+ <div class="amt ${t.deposit?"plus":"minus"}">${t.deposit?"+":"-"}${won(t.amount)}</div></div>`).join("");
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
+function persist(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function openModal(deposit){mode=deposit;document.getElementById("modalTitle").textContent=deposit?"입금":"출금";document.getElementById("title").value="";document.getElementById("amount").value="";document.getElementById("modal").style.display="flex";setTimeout(()=>document.getElementById("title").focus(),100)}
+function closeModal(){document.getElementById("modal").style.display="none"}
+function saveTx(){
+ const title=document.getElementById("title").value.trim()||(mode?"입금":"출금");
+ const amount=Math.floor(Number(document.getElementById("amount").value));
+ if(!amount||amount<1){alert("금액을 입력해줘.");return}
+ if(!mode&&amount>data.balance){alert("잔액보다 큰 금액은 출금할 수 없어.");return}
+ data.balance += mode?amount:-amount;
+ data.tx.unshift({title,amount,date:new Date().toISOString(),deposit:mode});
+ persist();closeModal();
+}
+function resetAll(){
+ if(confirm("잔액과 거래내역을 초기 상태로 되돌릴까?")){data={balance:3842500,tx:[]};persist()}
+}
+function unlock(){document.getElementById("lock").style.display="none";localStorage.setItem("unlocked","1")}
+render();
+if(localStorage.getItem("unlocked")==="1") document.getElementById("lock").style.display="none";
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>

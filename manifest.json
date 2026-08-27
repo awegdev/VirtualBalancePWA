@@ -1,0 +1,9 @@
+{
+  "name":"내 가상계좌",
+  "short_name":"가상계좌",
+  "start_url":".",
+  "display":"standalone",
+  "background_color":"#080809",
+  "theme_color":"#080809",
+  "lang":"ko"
+}
