@@ -43,6 +43,7 @@
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%;}
+html,body{height:100%; width:100%; overflow-x:hidden;}
 body{
   font-family:var(--body);
   color:var(--text);
@@ -379,7 +380,7 @@ svg.i{width:19px; height:19px; stroke-width:1.7;}
         <div class="ob-hero" style="margin-top:6px;">
           <span class="eyebrow">Step 2 — Biometric Lock</span>
           <h1 class="ob-title" style="font-size:26px;">Face ID로<br><em>금고를 잠그세요.</em></h1>
-          <p class="ob-sub">이 기기의 얼굴 인식(또는 지문·PIN)으로 금고를 열고 잠급니다. 실제 생체정보는 이 기기 밖으로 절대 전송되지 않아요.</p>
+          <p class="ob-sub">이 기기의 얼굴 인식(또는 지문·PIN)으로 금고를 열고 잠급니다..</p>
         </div>
         <div class="scan-wrap">
           <div class="scan-ring" id="obRing">
@@ -414,8 +415,8 @@ svg.i{width:19px; height:19px; stroke-width:1.7;}
         </div>
         <div class="scan-status" id="lockStatus">잠겨 있음</div>
       </div>
-      <div class="lock-name" id="lockName">나의 금고</div>
-      <div class="lock-acct" id="lockAcct">가상계좌 ****</div>
+      <div class="lock-name" id="lockName">나의</div>
+      <div class="lock-acct" id="lockAcct">계좌 ****</div>
     </div>
     <div class="lock-bottom">
       <button class="btn btn-gold" id="unlockBtn">
@@ -431,7 +432,7 @@ svg.i{width:19px; height:19px; stroke-width:1.7;}
     <div class="topbar">
       <div class="brand">
         <img class="brand-mark" src="icon.svg" alt="앱 로고" width="26" height="26">
-        <span class="brand-name" id="dashName">나의 금고</span>
+        <span class="brand-name" id="dashName">나의 계좌</span>
       </div>
       <div style="display:flex; gap:8px;">
         <button class="icon-btn" id="notifBtn" title="알림 설정" aria-label="알림 설정">
